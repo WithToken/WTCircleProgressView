@@ -68,15 +68,18 @@ static CGFloat endPointMargin = 1.0f;
     [self.layer addSublayer:gradientLayer];
     
     _endPoint = [[UIImageView alloc] init];
-    _endPoint.frame = CGRectMake(0, 0, _width - endPointMargin*2,_width - endPointMargin*2);
-    _endPoint.hidden = YES;
-    _endPoint.backgroundColor = [UIColor clearColor];//暂时隐藏圆点 （与进度脱节）
+    _endPoint.frame = CGRectMake(0, 0, _width - endPointMargin * 2,_width - endPointMargin * 2);
+    _endPoint.hidden = NO;
+    _endPoint.backgroundColor = [UIColor redColor];//暂时隐藏圆点 （与进度脱节）
     _endPoint.layer.masksToBounds = YES;
     _endPoint.layer.cornerRadius = _endPoint.bounds.size.width/2;
     [self addSubview:_endPoint];
 }
 
 -(void)setProgress:(float)progress {
+    if (_isCountTime) {
+        return;
+    }
     _progress = progress;
     _progressLayer.strokeEnd = progress;
     [self updateCircle];
@@ -84,7 +87,6 @@ static CGFloat endPointMargin = 1.0f;
 }
 
 -(void)updateCircle {
-    //转成弧度
     CGFloat angle = M_PI * 2 * _progress;
     float radius = (self.bounds.size.width - _width)/2.0;
     int index = (angle) / M_PI_2;
@@ -123,6 +125,7 @@ static CGFloat endPointMargin = 1.0f;
 }
 
 - (void)start:(completeBlock)completeBlock {
+    _isCountTime = YES;
     _completeBlock = [completeBlock copy];
     _timer = [NSTimer timerWithTimeInterval:0.01 target:self
                                        selector:@selector(updata) userInfo:nil repeats:YES];
@@ -130,6 +133,7 @@ static CGFloat endPointMargin = 1.0f;
 }
 
 - (void)start {
+    _isCountTime = YES;
     _timer = [NSTimer timerWithTimeInterval:0.01 target:self
                                        selector:@selector(updata) userInfo:nil repeats:YES];
     [[NSRunLoop currentRunLoop]addTimer:self.timer forMode: NSRunLoopCommonModes];
@@ -138,13 +142,21 @@ static CGFloat endPointMargin = 1.0f;
 - (void)updata {
     // 时间计算有问题。
     _count ++;
-    self.progress = 1.0 / (_totalTime * 100) + _progress;
+    [self updataProgress:1.0 / (_totalTime * 100) + _progress];
     if (_count >= _totalTime * 100) {
+        _isCountTime = NO;
         _count = 0;
         [_timer invalidate];
         _timer = nil;
         if (_completeBlock) _completeBlock();
     }
+}
+
+- (void)updataProgress:(CGFloat)progress {
+    _progress = progress;
+    _progressLayer.strokeEnd = progress;
+    [self updateCircle];
+    [_progressLayer removeAllAnimations];
 }
 
 - (void)stop {
